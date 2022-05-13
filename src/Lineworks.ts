@@ -302,7 +302,7 @@ namespace Lineworks {
      * トークBot API (メッセージ送信)
      * https://developers.worksmobile.com/jp/reference/bot?lang=ja
      */
-    export namespace Bots {
+    export namespace Bot {
 
         /**
          * トーク共通プロパティ
