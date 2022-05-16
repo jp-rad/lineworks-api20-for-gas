@@ -56,7 +56,7 @@ describe("トーク共通プロパティ (Lineworks.Bot.Content)", () => {
         "originalContentUrl": "https://example.com/image.png"
       }
     };
-    const actual = Lineworks.Bot.Content.Image('https://example.com/preview.png','https://example.com/image.png');
+    const actual = Lineworks.Bot.Content.Image('https://example.com/preview.png', 'https://example.com/image.png');
     expect(actual).toEqual(expected);
   });
 

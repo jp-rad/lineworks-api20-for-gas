@@ -1,22 +1,21 @@
 import Lineworks from './Lineworks';
 
 function testOAuth2() {
-    const accesstoken = Lineworks.OAuth2.getJwtAccessToken();
-    Logger.log(accesstoken);
+    const appConfig = Lineworks.Util.getAppConfig();
+    const accessToken = Lineworks.PlatformG.requestJwtAccessToken(appConfig);
+    Logger.log(accessToken);
 
-    const refreshedAccessToken = Lineworks.OAuth2.refreshJwtAccessToken(accesstoken.refresh_token);
-    Logger.log(refreshedAccessToken);
+    const refreshedToken = Lineworks.PlatformG.refreshJwtAccessToken(accessToken.refresh_token, appConfig);
+    Logger.log(refreshedToken);
 
+    return refreshedToken.access_token;
 }
 
 const imageUrl = "https://line.worksmobile.com/jp/wp-content/uploads/img-bot-01.png";
 
 function testSendMessage() {
     const { botId, userId, channelId } = Lineworks.Util.getConfig().bot;
-
-    // Access Token
-    const accessToken = Lineworks.OAuth2.getJwtAccessToken().access_token;
-    Logger.log(accessToken);
+    const accessToken = testOAuth2();
 
     const sendAll = (payload) => {
 
@@ -79,12 +78,7 @@ function testSendMessage() {
 
 function testUploadFile() {
     const { botId, userId, channelId } = Lineworks.Util.getConfig().bot;
-
-    // File
-    // https://developers.worksmobile.com/jp/reference/bot-send-file?lang=ja
-
-    // Access Token
-    const accessToken = Lineworks.OAuth2.getJwtAccessToken().access_token;
+    const accessToken = testOAuth2();
 
     const sendAll = (payload) => {
 
@@ -95,6 +89,9 @@ function testUploadFile() {
         Logger.log('sendToChannel: ' + channelId);
 
     }
+
+    // File
+    // https://developers.worksmobile.com/jp/reference/bot-send-file?lang=ja
 
     const blob = UrlFetchApp.fetch(imageUrl).getBlob();
     const fileName = blob.getName();
@@ -120,7 +117,10 @@ function testUploadFile() {
     const payloadFile = Lineworks.Bot.Content.FileUrlContent(imageUrl);
     sendAll(payloadFile);
 
-    const url = Lineworks.Bot.Attachment.getFile(fileId, botId, accessToken, false);
-    Logger.log(url)
+    const url = Lineworks.Bot.Attachment.getFileLocation(fileId, botId, accessToken);
+    Logger.log(url);
+
+    const blobFile = Lineworks.Bot.Attachment.getFileLocation(fileId, botId, accessToken, true);
+    Logger.log(blobFile);
 
 }
