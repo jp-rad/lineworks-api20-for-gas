@@ -4,6 +4,9 @@
   "devDependencies": {
     "@google/clasp": "^2.4.1",
     "@types/google-apps-script": "^1.0.47",
+    "@types/jest": "^27.5.1",
+    "jest": "^28.1.0",
+    "ts-jest": "^28.0.2",
     "zx": "^6.1.0"
   },
   "scripts": {
