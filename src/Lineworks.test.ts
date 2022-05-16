@@ -31,12 +31,12 @@ function testSendMessage() {
     // Text
     // https://developers.worksmobile.com/jp/reference/bot-send-text?lang=ja
     const text = "こんにちは！\n" + Date.now();
-    const payloadText = Lineworks.Bot.Content.TextContent(text);
+    const payloadText = Lineworks.Bot.Content.Text(text);
     sendAll(payloadText);
 
     // Image (URL方式)
     // https://developers.worksmobile.com/jp/reference/bot-send-image?lang=ja
-    const payloadImage = Lineworks.Bot.Content.ImageContent(imageUrl, imageUrl);
+    const payloadImage = Lineworks.Bot.Content.Image(imageUrl, imageUrl);
     sendAll(payloadImage);
 
     // Image (FileID方式)
@@ -112,7 +112,7 @@ function testUploadFile() {
 
     // Image (FileID方式)
     // https://developers.worksmobile.com/jp/reference/bot-send-image?lang=ja
-    var payloadImage = Lineworks.Bot.Content.ImageContent(fileId);
+    var payloadImage = Lineworks.Bot.Content.Image(fileId);
     sendAll(payloadImage);
 
     // File (FileID方式)

@@ -3,7 +3,27 @@
  * https://developers.worksmobile.com/jp/reference/introduction?lang=ja
  */
 namespace Lineworks {
+    export namespace PlatformG {
+        export function fetch(url: string, options: Bot.Message.FetchOptions) {
+            const params: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
+                method: options.method,
+                headers: options.headers,
+                payload: JSON.stringify(options.body),
+            }
+            //const request = UrlFetchApp.getRequest(url, params);
+            //Logger.log(request);
+            const response = UrlFetchApp.fetch(url, params);
+            //Logger.log(response);
+            //Logger.log(response.getResponseCode());
+            return response
+        }
+    }
 
+    export namespace PlatformN {
+        export function fetch(url: string, options: Bot.Message.FetchOptions) {
+            //
+        }
+    }
     export namespace Util {
 
         /**
@@ -310,24 +330,67 @@ namespace Lineworks {
          */
         export namespace Content {
 
-            export function TextContent(text: string) {
-                // https://developers.worksmobile.com/jp/reference/bot-send-text?lang=ja
-                const payload = {
+            // Text
+            // https://developers.worksmobile.com/jp/reference/bot-send-text?lang=ja
+            export interface Text {
+                content: {
+                    type: contentTypeText;
+                    text: string;
+                    i18nTexts?: i18nTexts;
+                };
+            };
+            export type contentTypeText = 'text';
+            export type i18nTexts = i18nText[];
+            export type i18nText = {
+                language: language;
+                text: string;
+            };
+            export type language = 'ja_JP' | 'ko_KR' | 'zh_CN' | 'zh_TW' | 'en_US';
+
+            export function i18nText(language: language, text: string): i18nText {
+                return {
+                    language,
+                    text,
+                }
+            }
+
+            export function Text(text: string, i18nTexts?: i18nTexts): Text {
+                const payload: Text = {
                     content: {
                         type: 'text',
                         text: text,
                     },
                 };
+                if (i18nTexts) {
+                    payload.content['i18nTexts'] = i18nTexts;
+                }
                 return payload;
             }
 
-            export function ImageContent(previewImageUrl: string, originalContentUrl: string): any;
-            export function ImageContent(fileId: string): any;
-            export function ImageContent(arg1: string, arg2?: string): any {
-                // https://developers.worksmobile.com/jp/reference/bot-send-image?lang=ja
+            // Image
+            // https://developers.worksmobile.com/jp/reference/bot-send-image?lang=ja
+            export type Image = ImageUrl | ImageFileId;
+            export interface ImageUrl {
+                content: {
+                    type: contentTypeImage;
+                    previewImageUrl: string;
+                    originalContentUrl: string;
+                }
+            };
+            export interface ImageFileId {
+                content: {
+                    type: contentTypeImage;
+                    fileId: string;
+                }
+            };
+            export type contentTypeImage = 'image';
+
+            export function Image(previewImageUrl: string, originalContentUrl: string): Image;
+            export function Image(fileId: string): Image;
+            export function Image(arg1: string, arg2?: string): Image {
                 if (arg2) {
                     // URL 方式
-                    const payload = {
+                    const payload: ImageUrl = {
                         content: {
                             type: "image",
                             previewImageUrl: arg1,
@@ -337,7 +400,7 @@ namespace Lineworks {
                     return payload;
                 } else {
                     // ファイル ID 方式
-                    const payload = {
+                    const payload: ImageFileId = {
                         content: {
                             type: "image",
                             fileId: arg1
@@ -500,19 +563,50 @@ namespace Lineworks {
          * メッセージ送信
          */
         export namespace Message {
+            // https://developers.worksmobile.com/jp/reference/bot-user-message-send?lang=ja
+            export function BuildUrlSendToUser(botId: string, userId: string) {
+                return `https://www.worksapis.com/v1.0/bots/${botId}/users/${userId}/messages`;
+            }
+            // https://developers.worksmobile.com/jp/reference/bot-channel-message-send?lang=ja
+            export function BuildUrlSendToChannel(botId: string, channelId: string) {
+                return `https://www.worksapis.com/v1.0/bots/${botId}/channels/${channelId}/messages`;
+            }
+            export function BuildFetchOptions(accessToken: string, content: content): FetchOptions {
+                return {
+                    method: 'post',
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: content,
+                };
+            }
+            export interface FetchOptions {
+                method: postMethod;
+                headers: {
+                    'Authorization': string;
+                    'Content-Type': jsonContentType;
+                };
+                body: content;
+            };
+            export type postMethod = 'post';
+            export type jsonContentType = 'application/json';
+            export type content = Bot.Content.Text | Bot.Content.Image | any;
 
             // メッセージ送信 - ユーザー
             // https://developers.worksmobile.com/jp/reference/bot-user-message-send?lang=ja
             export function sendToUser(userId: string, payload: any, botId: string, accessToken: string) {
-                const url = `https://www.worksapis.com/v1.0/bots/${botId}/users/${userId}/messages`;
-                Util.postJson(url, payload, accessToken);
+                const url = BuildUrlSendToUser(botId, userId);
+                const options = BuildFetchOptions(accessToken, payload);
+                PlatformG.fetch(url, options);
             }
 
             // メッセージ送信 - トークルーム
             // https://developers.worksmobile.com/jp/reference/bot-channel-message-send?lang=ja
             export function sendToChannel(channelId: string, payload: any, botId: string, accessToken: string) {
-                const url = `https://www.worksapis.com/v1.0/bots/${botId}/channels/${channelId}/messages`;
-                Util.postJson(url, payload, accessToken);
+                const url = BuildUrlSendToChannel(botId, channelId);
+                const options = BuildFetchOptions(accessToken, payload);
+                PlatformG.fetch(url, options);
             }
         }
 
