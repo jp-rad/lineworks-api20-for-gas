@@ -101,6 +101,7 @@ namespace Lineworks {
             const params: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
                 method: options.method,
                 headers: options.headers,
+                // muteHttpExceptions: true,
             }
             const payload = options['body'];
             if (payload != undefined) {
@@ -138,11 +139,6 @@ namespace Lineworks {
         }
     }
 
-    export namespace PlatformN {
-        export function fetch(url: string, options: Bot.Message.FetchOptions) {
-            //
-        }
-    }
     export namespace Util {
 
         export const ConfigPath = 'private_lineworks.config.json.html';
@@ -655,6 +651,24 @@ namespace Lineworks {
                 return locationUrl;
             }
 
+        }
+
+        export namespace Callback {
+            // https://developers.worksmobile.com/jp/reference/bot-callback-message?lang=ja
+            export interface TextMessageEvent {
+                type: string;           // 固定:"message"
+                source: {               // メッセージ送信者の情報
+                    userId: string;     // 送信元メンバーアカウント
+                    channelId: string;  // 送信したトークルーム ID
+                    domainId: number;   // 送信したドメイン ID
+                };
+                issuedTime: string;     // メッセージが作成された日時。(YYYY-MM-DDThh:mm:ss.SSSZ)
+                content: {              // メッセージの内容
+                    type: string;       // 固定:"text"
+                    text: string;       // メッセージ本文
+                    postback?: string;  // postback メッセージ (ボタンなどのテンプレート利用時)
+                };
+            }
         }
     }
 

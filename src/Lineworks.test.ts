@@ -53,6 +53,12 @@ function testSendMessage() {
 
     // Button Template
     // https://developers.worksmobile.com/jp/reference/bot-send-button?lang=ja
+    const actionsButtonTemplate = [
+        Lineworks.Bot.Content.ActionUri('LINE WORKS Homepage', 'https://line.worksmobile.com'),
+        Lineworks.Bot.Content.AcitionMessage('FAQ', 'ButtonTemplate_FAQ'),
+    ];
+    const payloadButtonTemplate = Lineworks.Bot.Content.ButtonTemplateContent('What do you want?', actionsButtonTemplate);
+    sendAll(payloadButtonTemplate);
 
     // List Template
     // https://developers.worksmobile.com/jp/reference/bot-send-list?lang=ja
