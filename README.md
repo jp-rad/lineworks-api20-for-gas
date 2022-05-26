@@ -51,7 +51,7 @@
 |4|Bot ID|(自動生成)| |
 |5|API Interface|API 2.0|APIの新旧バージョン|
 |6|固定メニュー|(そのまま)||
-|7|Callback URL|Off||
+|7|Callback URL|Off|(後でOnに変更)|
 |8|Botポリシー|(チェック)複数人のトークルームに招待可||
 |9|主担当|(最高管理者のユーザー)||
 |10|副担当|(副管理者のユーザー)||
@@ -85,7 +85,7 @@
 |3|Client ID|(自動生成)||
 |4|Client Secret|(自動生成)||
 |5|Redirect URL|(空欄)||
-|6|OAuth Scopes|(すべて選択)|管理ですべてを選択|
+|6|OAuth Scopes|(すべて選択)|`管理`ですべてを選択|
 
 ## 構成ファイルの追加
 
@@ -140,5 +140,38 @@ Private Keyの発行/再発行でダウンロードしたファイルの名前�
 1. VS Codeのメニュー `ターミナル` > `タスクの実行`で、`GAS ビルドとプッシュ`を選択する
 1. `Google Apps Script`を開き、ローカルのソースコードが反映されていることを確認する（リロード）
 1. `Google Apps Script`で、`Lineworks.test.gs`ファイルを選択し、実行する関数を選んで、`実行`または`デバッグ`を行う
+1. [LINE WORKS](https://line.worksmobile.com/jp/)のトークにメッセージが送信されていることを確認する
 
 初回実行時には、`承認`が求められるので、許可します。
+
+# トークBot
+
+`https.ts(gs)`の`doPost`メソッドがBotのCallback(URL)として呼び出されるように設定します。
+
+これにより、`https.ts(gs)`がBotサーバーとなり、LINE WORKSのトークBotが機能します。
+
+- [メッセージ(Callback) 受信](https://developers.worksmobile.com/jp/reference/bot-callback?lang=ja)
+
+## ウェブアプリのデプロイ
+
+`Google Apps Script`で、Botサーバーとなる`ウェブアプリ`をデプロイします。
+
+1. `Google Apps Script`を開き、`デプロイ`から`新しいデプロイ`を選択する
+1. `ウェブアプリ`を選択し、`デプロイ`する  
+次のユーザーとして実行:「自分（your.account@example.com）」  
+アクセスできるユーザー:「全員」  
+1. ウェブアプリ urlをコピーする（BotのCallback URLとする）
+
+## BotのCallback有効化
+
+[LINE WORKS Developer Console](https://developers.worksmobile.com/jp/?lang=ja)を開き、登録済みの`Bot`を`修正`します。
+
+|#|項目|内容|説明|
+|---|---|---|---|
+|1|Callback URL|On||
+|2|(URL)       |(コピーしたウェブアプリ url)||
+|3|(チェックボックス)|（すべて選択）|メンバーが送信可能なメッセージタイプ|
+
+## 動作確認
+
+トークグループで、メッセージやスタンプの送信をすると、Botから自動メッセージが返信されます。
