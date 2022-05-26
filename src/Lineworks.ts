@@ -101,6 +101,7 @@ namespace Lineworks {
             const params: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
                 method: options.method,
                 headers: options.headers,
+                // muteHttpExceptions: true,
             }
             const payload = options['body'];
             if (payload != undefined) {
@@ -138,11 +139,6 @@ namespace Lineworks {
         }
     }
 
-    export namespace PlatformN {
-        export function fetch(url: string, options: Bot.Message.FetchOptions) {
-            //
-        }
-    }
     export namespace Util {
 
         export const ConfigPath = 'private_lineworks.config.json.html';
@@ -655,6 +651,80 @@ namespace Lineworks {
                 return locationUrl;
             }
 
+        }
+
+        /**
+         * メッセージ(Callback) 受信
+         * https://developers.worksmobile.com/jp/reference/bot-callback?lang=ja
+         */
+        export namespace Callback {
+            export type EventType = (MessageType | JoinType | LeaveType | JoinedType | LeftType | PostbackType);
+            export type MessageType = 'message';    // メンバーからのメッセージ
+            export type JoinType = 'join';          // Bot が複数人トークルームに招待された
+            export type LeaveType = 'leave';        // Bot が複数人トークルームから退室した
+            export type JoinedType = 'joined';      // メンバーが Bot のいる複数人トークルームに参加した
+            export type LeftType = 'left';          // メンバーが Bot のいる複数人トークルームから退室した
+            export type PostbackType = 'postback';  // postback タイプのメッセージ
+            export interface Event {
+                type: EventType;        // "message", "join", "leave", "joined", "left", "postback"
+                issuedTime: string;     // メッセージが作成された日時。(YYYY-MM-DDThh:mm:ss.SSSZ)
+            }
+            // https://developers.worksmobile.com/jp/reference/bot-callback-message?lang=ja
+            export type MessageContentType = TextMessageContentType     // "text"     テキスト  全バージョンで対応
+                | LocationMessageContentType // "location" 位置情報  全バージョンで対応
+                | StickerMessageContentType  // "sticker"  スタンプ  v2.3 以降で対応
+                | ImageMessageContentType    // "image"    画像      v2.3 以降で対応
+                | FileMessageContentType;    // "file"     ファイル  v2.9 以降で対応
+            export interface Message extends Event {
+                type: MessageType;                  // 固定:"message"
+                source: {                           // メッセージ送信者の情報
+                    userId: string;                 // 送信元メンバーアカウント
+                    channelId?: string;             // 送信したトークルーム ID
+                    domainId: number;               // 送信したドメイン ID
+                };
+                content: {                          // メッセージの内容
+                    type: MessageContentType;       // "text", "location", "sticker", "image", "file"
+                };
+            }
+            export type TextMessageContentType = 'text';
+            export interface TextMessage extends Message {
+                content: {
+                    type: TextMessageContentType;       // 固定:"text"
+                    text: string;                       // メッセージ本文
+                    postback?: string;                  // postback メッセージ (ボタンなどのテンプレート利用時)
+                }
+            }
+            export type LocationMessageContentType = 'location';
+            export interface LocationMessage extends Message {
+                content: {                              // メッセージの内容
+                    type: LocationMessageContentType;   // 固定:"location"
+                    address: string;                    // メンバーが送信した位置情報(住所)
+                    latitude: number;                   // メンバーが送信した位置情報(緯度)
+                    longitude: number;                  // メンバーが送信した位置情報(経度)
+                }
+            }
+            export type StickerMessageContentType = 'sticker';
+            export interface StickerMessage extends Message {
+                content: {                              // メッセージの内容
+                    type: StickerMessageContentType;    // 固定:"sticker"
+                    packageId: string;                  // パッケージ ID
+                    stickerId: string;                  // スタンプ ID
+                }
+            }
+            export type ImageMessageContentType = 'image';
+            export interface ImageMessage extends Message {
+                content: {                              // メッセージの内容
+                    type: ImageMessageContentType;      // 固定:"image"
+                    fileId: string;                     // リソース ID
+                }
+            }
+            export type FileMessageContentType = 'file';
+            export interface FileMessage extends Message {
+                content: {                              // メッセージの内容
+                    type: FileMessageContentType;       // 固定:"file"
+                    fileId: string;                     // リソース ID
+                }
+            }
         }
     }
 
