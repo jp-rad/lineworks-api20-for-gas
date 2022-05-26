@@ -56,7 +56,30 @@
                 "isDefault": true
             }
         },
-
+        {
+            "label": "GAS プル",
+            "type": "shell",
+            "command": "npx",
+            "args": [
+                "zx",
+                "package.json.md",
+                "--",
+                "pull-appscript",
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "GAS オープン",
+            "type": "shell",
+            "command": "npx",
+            "args": [
+                "zx",
+                "package.json.md",
+                "--",
+                "clasp-open",
+            ],
+            "problemMatcher": []
+        },
     ],
     "inputs": [
         {
