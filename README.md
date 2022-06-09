@@ -123,9 +123,9 @@
 |2|apps[].clientSecret|API2.0アプリのClient Secret|コピー|
 |3|apps[].serviceAccount|API2.0アプリのService Account|発行後、コピー|
 |4|apps[].privateKeyFilename|API2.0アプリのPrivate Keyで発行したファイル名|発行/再発行でダウンロード|
-|5|bot.botId|Bot ID|Bot登録時に確認したBot ID(7桁の数字)|
-|6|bot.channelId|トークルームID|監査で確認したトークルームID(9桁の数字)|
-|6|bot.userId|ユーザーID|メンバー情報で確認できるメンバーのID(id@group形式等)|
+|5|apps[].userOption.bot.botId|Bot ID|Bot登録時に確認したBot ID(7桁の数字)|
+|6|apps[].userOption.bot.channelId|トークルームID|監査で確認したトークルームID(9桁の数字)|
+|6|apps[].userOption.bot.userId|ユーザーID|メンバー情報で確認できるメンバーのID(id@group形式等)|
 
 Private Keyの発行/再発行でダウンロードしたファイルの名前の拡張子を`.html`に変更(追加)して、`src`フォルダに保存します。
 

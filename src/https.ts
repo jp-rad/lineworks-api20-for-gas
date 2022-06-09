@@ -41,9 +41,9 @@ function onTextMessageEvent(e: Lineworks.Bot.Callback.TextMessage) {
 
 function sendLineworksBotTextMessage(text: string, channelId: string, userId: string) {
     const payloadText = Lineworks.Bot.Content.Text(text);
-    const { botId } = Lineworks.Util.getConfig().bot
     const appConfig = Lineworks.Util.getAppConfig();
     const accessToken = Lineworks.PlatformG.requestJwtAccessToken(appConfig).access_token;
+    const botId = appConfig.userOption.botId;
     if (channelId) {
         Lineworks.Bot.Message.sendToChannel(channelId, payloadText, botId, accessToken);
     } else {

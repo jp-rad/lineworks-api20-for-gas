@@ -151,6 +151,7 @@ namespace Lineworks {
             clientSecret: string,
             serviceAccount: string,
             privateKey: string,
+            userOption?: any,
         }
 
         /**
@@ -163,20 +164,27 @@ namespace Lineworks {
             }
             for (const app of config.apps) {
                 if (app.label == config.defaultAppLabel) {
-                    return {
+                    var appConfig: Util.AppConfig = {
                         clientId: app.clientId,
                         clientSecret: app.clientSecret,
                         serviceAccount: app.serviceAccount,
                         privateKey: readTextFromFile(app.privateKeyFilename),
                     }
+                    if (app.userOption) {
+                        appConfig.userOption = app.userOption;
+                    }
+                    return appConfig;
                 }
             }
             throw `Unknown label: "${config.defaultAppLabel}"`;
         }
 
+        var defaultConfig = null;
         export function getConfig(filename = Util.ConfigPath, readTextFromFile = PlatformG.readTextFromFile) {
-            const config = JSON.parse(readTextFromFile(filename));
-            return config;
+            if (!defaultConfig) {
+                defaultConfig = JSON.parse(readTextFromFile(filename));
+            }
+            return defaultConfig;
         }
 
         export interface FetchResponse {
@@ -751,12 +759,13 @@ namespace Lineworks {
             return multipart;
         }
 
-        export function buildFetchOptions(partBoundary: string, multipart: number[]): FetchOptions {
+        export function buildFetchOptions(partBoundary: string, multipart: number[], accessToken:string): FetchOptions {
             return {
                 method: 'post',
                 contentType: `multipart/form-data; boundary=${partBoundary}`,
                 headers: {
-                    Authorization: 'Bearer ...,',
+                    //Authorization: 'Bearer ...',
+                    Authorization: `Bearer ${accessToken}`,
                 },
                 body: multipart,
             };
@@ -774,7 +783,7 @@ namespace Lineworks {
         export type postMethod = 'post';
         export type content = number[];
 
-        export function upload(uploadUrl: string, data: number[], contentType: string, filename: string, concat = PlatformG.concatMultipart, fetch = PlatformG.fetch) {
+        export function upload(uploadUrl: string, data: number[], contentType: string, filename: string, accessToken: string, concat = PlatformG.concatMultipart, fetch = PlatformG.fetch) {
             // Blob
             // https://developers.google.com/apps-script/reference/utilities/utilities#newBlob(Byte,String,String)
 
@@ -793,7 +802,7 @@ namespace Lineworks {
             // 参考: https://www.labnol.org/code/20096-upload-files-multipart-post
             const partBoundary = '--------------u1p2l3o4a5d6f7i8l9e0d1a2t3a';
             const multipart = buildPart(partBoundary, filename, contentType, data, concat);
-            const options = buildFetchOptions(partBoundary, multipart);
+            const options = buildFetchOptions(partBoundary, multipart, accessToken);
             const response = fetch(uploadUrl, options);
             const contentText = response.contentText;
             const content = JSON.parse(contentText);
