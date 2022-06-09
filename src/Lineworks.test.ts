@@ -14,7 +14,7 @@ function testOAuth2() {
 const imageUrl = "https://line.worksmobile.com/jp/wp-content/uploads/img-bot-01.png";
 
 function testSendMessage() {
-    const { botId, userId, channelId } = Lineworks.Util.getConfig().bot;
+    const { botId, userId, channelId } = Lineworks.Util.getAppConfig().userOption.LineworksTest;
     const accessToken = testOAuth2();
 
     const sendAll = (payload) => {
@@ -83,7 +83,7 @@ function testSendMessage() {
 }
 
 function testUploadFile() {
-    const { botId, userId, channelId } = Lineworks.Util.getConfig().bot;
+    const { botId, userId, channelId } = Lineworks.Util.getAppConfig().userOption.LineworksTest;
     const accessToken = testOAuth2();
 
     const sendAll = (payload) => {
@@ -110,7 +110,7 @@ function testUploadFile() {
     const { fileId, uploadUrl } = fileInfo;
 
     // ファイルのアップロード
-    const uploaded = Lineworks.File.upload(uploadUrl, data, contentType, fileName);
+    const uploaded = Lineworks.File.upload(uploadUrl, data, contentType, fileName, accessToken);
     Logger.log(uploaded);
 
     // Image (FileID方式)
