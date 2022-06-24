@@ -38,7 +38,7 @@ namespace Lineworks {
             return jwt;
         }
 
-        function getNewJwtAccessToken(jwt: string, clientId: string, clientSecret: string, scopes: string): OAuth2.Token {
+        function getNewJwtAccessToken(jwt: string, clientId: string, clientSecret: string, scopes: string): OAuth2.AccessToken {
             const url = OAuth2.buildUrl();
             const payload: OAuth2.RequestBody = {
                 assertion: jwt,
@@ -49,21 +49,16 @@ namespace Lineworks {
             };
             const options = OAuth2.buildFetchOptions(payload);
             const response = fetch(url, options);
-            //Logger.log(response.getResponseCode());
-            if (response.responseCode != 200) {
-                return null;
-            }
-            //Logger.log(response.getContentText());
-            const token = JSON.parse(response.contentText);
+            const token = JSON.parse(response.contentText as string);
             return token;
         }
 
-        export function requestJwtAccessToken(appConfig: Util.AppConfig, scopes: string = 'bot'): OAuth2.Token {
+        export function requestJwtAccessToken(appConfig: Util.AppConfig, scopes: string = 'bot'): OAuth2.AccessToken {
             const jwt = getJwtRs256(appConfig.clientId, appConfig.serviceAccount, appConfig.privateKey);
             //Logger.log(jwt);
-            const accessToken = getNewJwtAccessToken(jwt, appConfig.clientId, appConfig.clientSecret, scopes);
-            //Logger.log(accessToken);
-            return accessToken;
+            const token = getNewJwtAccessToken(jwt, appConfig.clientId, appConfig.clientSecret, scopes);
+            //Logger.log(token);
+            return token;
         }
 
         /**
@@ -72,7 +67,7 @@ namespace Lineworks {
          * @param refresh_token 
          * @returns 
          */
-        export function refreshJwtAccessToken(refresh_token: string, appConfig: Util.AppConfig): OAuth2.Token {
+        export function refreshJwtAccessToken(refresh_token: string, appConfig: Util.AppConfig): OAuth2.RefreshedToken {
             const url = OAuth2.buildUrl();
             const payload: OAuth2.RefreshBody = {
                 refresh_token: refresh_token,
@@ -82,12 +77,7 @@ namespace Lineworks {
             }
             const options = OAuth2.buildFetchOptions(payload);
             const response = fetch(url, options);
-            //Logger.log(response.getResponseCode());
-            if (response.responseCode != 200) {
-                return null;
-            }
-            //Logger.log(response.getContentText());
-            const token = JSON.parse(response.contentText);
+            const token = JSON.parse(response.contentText as string);
             return token;
         }
 
@@ -104,15 +94,15 @@ namespace Lineworks {
                 // muteHttpExceptions: true,
             }
             const payload = options['body'];
-            if (payload != undefined) {
+            if (payload) {
                 params.payload = payload;
             }
             const contentType = options['contentType'];
-            if (contentType != undefined) {
+            if (contentType) {
                 params.contentType = contentType;
             }
             const followRedirects = options['followRedirects'];
-            if (followRedirects != undefined) {
+            if (followRedirects) {
                 params.followRedirects = followRedirects;
             }
             //const request = UrlFetchApp.getRequest(url, params);
@@ -122,6 +112,9 @@ namespace Lineworks {
             //Logger.log(response.getResponseCode());
             const fetchResponse: Util.FetchResponse = {
                 responseCode: response.getResponseCode(),
+            }
+            if ((fetchResponse.responseCode != 200) && (fetchResponse.responseCode != 201)) {
+                throw `fetch error, response code: ${fetchResponse.responseCode}`;
             }
             const headers = response.getHeaders();
             if (headers) {
@@ -255,15 +248,19 @@ namespace Lineworks {
             client_secret: string;
         }
 
-        /**
-         * Access Token
-         */
-        export interface Token {
+        export interface AccessToken {
             access_token: string;
-            refresh_token?: string;
+            refresh_token: string;
+            token_type: string;
+            expires_in: number;
             scope: string;
-            token_type: string,
-            expires_in: number,
+        }
+
+        export interface RefreshedToken {
+            access_token: string;
+            scope: string;
+            expires_in: number;
+            token_type: string;
         }
 
     }
@@ -280,39 +277,80 @@ namespace Lineworks {
          */
         export namespace Content {
 
+            // Action Objects
+            export type action = Action.Postback | Action.Message | Action.Uri | Action.Camera | Action.CameraRoll | Action.Location
+            export type actions = action[];
+            export type actionMatrix = action[][];
+
+            // クイック返信 (quick reply) 
+            // https://developers.worksmobile.com/jp/reference/bot-send-content?lang=ja
+            export interface quickReply {
+                items: quickReplyItems;
+            }
+            export function quickReply(items: quickReplyItems): quickReply {
+                return {
+                    items
+                };
+            }
+            export type quickReplyItems = quickReplyItem[];
+            export interface quickReplyItem {
+                imageUrl?: string;
+                action: action;
+                i18nImageUrl?: I18N.i18nImageUrls;
+                imageResourceId?: string;
+                i18nImageResourceIds?: I18N.i18nImageResourceIds;
+            }
+            export function quickReplyItem(action: action, imageUrl?: string, imageResourceId?: string, i18nImageUrl?: I18N.i18nImageUrls, i18nImageResourceIds?: I18N.i18nImageResourceIds) {
+                const item: quickReplyItem = {
+                    action
+                };
+                if (imageUrl) {
+                    item['imageUrl'] = imageUrl;
+                }
+                if (imageResourceId) {
+                    item['imageResourceId'] = imageResourceId;
+                }
+                if (i18nImageUrl) {
+                    item['i18nImageUrl'] = i18nImageUrl;
+                }
+                if (i18nImageResourceIds) {
+                    item['i18nImageResourceIds'] = i18nImageResourceIds;
+                }
+                return item;
+            }
+
+            // メンバーへのメンション (mention) 
+            // https://developers.worksmobile.com/jp/reference/bot-send-content?lang=ja
+            export function mention(userId?: string) {
+                if (userId) {
+                    return `<m userId="${userId}">`;
+                }
+                return '<m userId="all">';
+            }
+
             // Text
             // https://developers.worksmobile.com/jp/reference/bot-send-text?lang=ja
             export interface Text {
                 content: {
-                    type: contentTypeText;
+                    type: 'text';
                     text: string;
-                    i18nTexts?: i18nTexts;
+                    i18nTexts?: I18N.i18nTexts;
+                    quickReply?: quickReply;
                 };
             };
-            export type contentTypeText = 'text';
-            export type i18nTexts = i18nText[];
-            export type i18nText = {
-                language: language;
-                text: string;
-            };
-            export type language = 'ja_JP' | 'ko_KR' | 'zh_CN' | 'zh_TW' | 'en_US';
-
-            export function i18nText(language: language, text: string): i18nText {
-                return {
-                    language,
-                    text,
-                }
-            }
-
-            export function Text(text: string, i18nTexts?: i18nTexts): Text {
+            export function Text(text: string, i18nTexts?: I18N.i18nTexts, quickReply?: quickReply) {
+                const type = 'text';
                 const payload: Text = {
                     content: {
-                        type: 'text',
-                        text: text,
+                        type,
+                        text,
                     },
                 };
                 if (i18nTexts) {
                     payload.content['i18nTexts'] = i18nTexts;
+                }
+                if (quickReply) {
+                    payload.content['quickReply'] = quickReply;
                 }
                 return payload;
             }
@@ -322,189 +360,538 @@ namespace Lineworks {
             export type Image = ImageUrl | ImageFileId;
             export interface ImageUrl {
                 content: {
-                    type: contentTypeImage;
+                    type: 'image';
                     previewImageUrl: string;
                     originalContentUrl: string;
+                    quickReply?: quickReply;
                 }
             };
+            export function ImageUrl(previewImageUrl: string, originalContentUrl: string, quickReply?: quickReply) {
+                // URL 方式
+                const type = 'image';
+                const payload: ImageUrl = {
+                    content: {
+                        type,
+                        previewImageUrl,
+                        originalContentUrl,
+                    },
+                };
+                if (quickReply) {
+                    payload.content['quickReply'] = quickReply;
+                }
+                return payload;
+            }
             export interface ImageFileId {
                 content: {
-                    type: contentTypeImage;
+                    type: 'image';
                     fileId: string;
+                    quickReply?: quickReply;
                 }
             };
-            export type contentTypeImage = 'image';
-
+            export function ImageFileId(fileId: string, quickReply?: quickReply) {
+                // ファイル ID 方式
+                const type = 'image';
+                const payload: ImageFileId = {
+                    content: {
+                        type,
+                        fileId,
+                    },
+                };
+                if (quickReply) {
+                    payload.content['quickReply'] = quickReply;
+                }
+                return payload;
+            }
             export function Image(previewImageUrl: string, originalContentUrl: string): Image;
             export function Image(fileId: string): Image;
             export function Image(arg1: string, arg2?: string): Image {
                 if (arg2) {
                     // URL 方式
-                    const payload: ImageUrl = {
-                        content: {
-                            type: 'image',
-                            previewImageUrl: arg1,
-                            originalContentUrl: arg2,
-                        },
-                    };
-                    return payload;
+                    return ImageUrl(arg1, arg2);
                 } else {
                     // ファイル ID 方式
-                    const payload: ImageFileId = {
-                        content: {
-                            type: 'image',
-                            fileId: arg1
-                        },
-                    };
-                    return payload;
+                    return ImageFileId(arg1);
                 }
             }
 
-            export function LinkContent(contentText: string, linkText: string, link: string) {
-                // https://developers.worksmobile.com/jp/reference/bot-send-link?lang=ja
-                const payload = {
+            // Link
+            // https://developers.worksmobile.com/jp/reference/bot-send-link?lang=ja
+            export interface Link {
+                content: {
+                    type: 'link';
+                    contentText: string;
+                    i18nContentTexts?: I18N.i18nContentTexts;
+                    linkText: string;
+                    i18nLinkTexts?: I18N.i18nLinkTexts;
+                    link: string;
+                    quickReply?: quickReply;
+                };
+            };
+            export function Link(contentText: string, linkText: string, link: string, i18nContentTexts?: I18N.i18nContentTexts, i18nLinkTexts?: I18N.i18nLinkTexts, quickReply?: quickReply) {
+                const type = 'link';
+                const payload: Link = {
                     content: {
-                        type: 'link',
-                        contentText: contentText,
-                        linkText: linkText,
-                        link: link,
+                        type,
+                        contentText,
+                        linkText,
+                        link,
                     },
                 };
+                if (i18nContentTexts) {
+                    payload.content['i18nContentTexts'] = i18nContentTexts;
+                }
+                if (i18nLinkTexts) {
+                    payload.content['i18nLinkTexts'] = i18nLinkTexts;
+                }
+                if (quickReply) {
+                    payload.content['quickReply'] = quickReply;
+                }
                 return payload;
             }
 
-            export function StampContent(packageId: string, stickerId: string) {
-                // https://developers.worksmobile.com/jp/reference/bot-send-sticker?lang=ja
-                // https://static.worksmobile.net/static/wm/media/message-bot-api/line_works_sticker_list_new.pdf
-                const payload = {
+            // Stamp
+            // https://developers.worksmobile.com/jp/reference/bot-send-sticker?lang=ja
+            // https://static.worksmobile.net/static/wm/media/message-bot-api/line_works_sticker_list_new.pdf
+            export interface Stamp {
+                content: {
+                    type: 'sticker';
+                    packageId: string;
+                    stickerId: string;
+                    quickReply?: quickReply;
+                };
+            };
+            export function Stamp(packageId: string, stickerId: string, quickReply?: quickReply) {
+                const type = 'sticker';
+                const payload: Stamp = {
                     content: {
-                        type: 'sticker',
-                        packageId: packageId,
-                        stickerId: stickerId,
+                        type,
+                        packageId,
+                        stickerId,
                     },
                 };
+                if (quickReply) {
+                    payload.content['quickReply'] = quickReply;
+                }
                 return payload;
             }
 
-            export function ActionUri(label: string, uri: string) {
-                const action = {
-                    type: 'uri',
-                    label: label,
-                    uri: uri,
+            // ButtonTemplate
+            // https://developers.worksmobile.com/jp/reference/bot-send-button?lang=ja
+            export interface ButtonTemplate {
+                content: {
+                    type: 'button_template';
+                    contentText: string;
+                    i18nContentTexts?: I18N.i18nContentTexts;
+                    actions: actions;
+                    quickReply?: quickReply;
                 };
-                return action;
-            }
-
-            export function AcitionMessage(label: string, postback: string) {
-                const action = {
-                    type: 'message',
-                    label: label,
-                    postback: postback,
-                };
-                return action;
-            }
-
-            export function ButtonTemplateContent(contentText: string, actions: any[]) {
-                // https://developers.worksmobile.com/jp/reference/bot-send-button?lang=ja
-                const payload = {
+            };
+            export function ButtonTemplate(contentText: string, actions: actions, quickReply?: quickReply) {
+                const type = 'button_template';
+                const payload: ButtonTemplate = {
                     content: {
-                        type: 'button_template',
-                        contentText: contentText,
-                        actions: actions,
+                        type,
+                        contentText,
+                        actions,
                     },
                 };
+                if (quickReply) {
+                    payload.content['quickReply'] = quickReply;
+                }
                 return payload;
             }
 
-            export function CoverDataImageUri(backgroundImageUrl: string, title?: string, subtitle?: string) {
-                const coverData = {
-                    backgroundImageUrl: backgroundImageUrl,
-                };
-                if (title) {
-                    coverData['title'] = title;
-                }
-                if (subtitle) {
-                    coverData['subtitle'] = title;
-                }
-                return coverData;
-            }
-
-            export function CoverDataFileId(backgroundFileId: string, title?: string, subtitle?: string) {
-                const coverData = {
-                    backgroundFileId: backgroundFileId,
-                };
-                if (title) {
-                    coverData['title'] = title;
-                }
-                if (subtitle) {
-                    coverData['subtitle'] = title;
-                }
-                return coverData;
-            }
-
-            export function ElementUri(originalContentUrl: string, title: string, subtitle?: string, action?: any) {
-                const element = {
-                    title: title,
-                    originalContentUrl: originalContentUrl,
-                };
-                if (subtitle) {
-                    element['subtitle'] = subtitle;
-                }
-                if (action) {
-                    element['action'] = action;
-                }
-                return element;
-            }
-
-            export function ElementFileId(fileId: string, title: string, subtitle?: string, action?: any) {
-                const element = {
-                    title: title,
-                    fileId: fileId,
-                };
-                if (subtitle) {
-                    element['subtitle'] = subtitle;
-                }
-                if (action) {
-                    element['action'] = action;
-                }
-                return element;
-            }
-
-            export function ListTemplateContent(contentText: string, elements: any[], actions: any[], coverData?: any) {
-                // https://developers.worksmobile.com/jp/reference/bot-send-list?lang=ja
-                const payload = {
+            // ListTemplate
+            // https://developers.worksmobile.com/jp/reference/bot-send-list?lang=ja
+            export interface ListTemplate {
+                content: {
+                    type: 'list_template';
+                    elements: elements;
+                    actions: actionMatrix;  // actions 下部のボタン。1つ目の配列は行、2つ目の配列は列を表す。
+                    coverData?: coverData;
+                    quickReply?: quickReply;
+                },
+            };
+            export function ListTemplate(elements: any[], actions: actionMatrix, coverData?: coverData, quickReply?: quickReply) {
+                const type = 'list_template';
+                const payload: ListTemplate = {
                     content: {
-                        type: 'list_template',
-                        elements: elements,
-                        actions: [actions]
+                        type,
+                        elements,
+                        actions,
                     },
                 };
                 if (coverData) {
                     payload.content['coverData'] = coverData;
                 }
+                if (quickReply) {
+                    payload.content['quickReply'] = quickReply;
+                }
+                return payload;
+            }
+            export interface coverData {
+                backgroundImageUrl?: string;
+                backgroundFileId?: string;
+                title?: string;
+                subtitle?: string;
+            };
+            export function coverData(backgroundImageUrl?: string, backgroundFileId?: string, title?: string, subtitle?: string) {
+                const coverData: coverData = {};
+                if (backgroundImageUrl) {
+                    coverData['backgroundImageUrl'] = backgroundImageUrl;
+                } else if (backgroundFileId) {
+                    coverData['backgroundFileId'] = backgroundFileId;
+                }
+                if (title) {
+                    coverData['title'] = title;
+                }
+                if (subtitle) {
+                    coverData['subtitle'] = subtitle;
+                }
+                return coverData;
+            }
+            export function coverDataImageUri(backgroundImageUrl: string, title?: string, subtitle?: string) {
+                return coverData(backgroundImageUrl, undefined, title, subtitle);
+            }
+            export function coverDataFileId(backgroundFileId: string, title?: string, subtitle?: string) {
+                return coverData(undefined, backgroundFileId, title, subtitle);
+            }
+            export type elements = element[];
+            export interface element {
+                title: string;
+                subtitle?: string;
+                originalContentUrl?: string;
+                fileId?: string;
+                action?: action;
+            };
+            export function element(title: string, subtitle?: string, originalContentUrl?: string, fileId?: string, action?: action) {
+                const element: element = {
+                    title,
+                };
+                if (subtitle) {
+                    element['subtitle'] = subtitle;
+                }
+                if (originalContentUrl) {
+                    element['originalContentUrl'] = originalContentUrl;
+                } else if (fileId) {
+                    element['fileId'] = fileId;
+                }
+                if (action) {
+                    element['action'] = action;
+                }
+                return element;
+            }
+            export function elementUri(originalContentUrl: string, title: string, subtitle?: string, action?: action) {
+                return element(title, subtitle, originalContentUrl, undefined, action);
+            }
+            export function elementFileId(fileId: string, title: string, subtitle?: string, action?: action) {
+                return element(title, subtitle, undefined, fileId, action);
+            }
+
+            // Carousel
+            // https://developers.worksmobile.com/jp/reference/bot-send-carousel?lang=ja
+            /**
+             * ToDo: Carousel
+             */
+            export type Carousel = any;
+
+            // Image Carousel
+            // https://developers.worksmobile.com/jp/reference/bot-send-imagecarousel?lang=ja
+            /**
+             * ToDo: Image Carousel
+             */
+            export type ImageCarousel = any;
+
+            // File
+            // https://developers.worksmobile.com/jp/reference/bot-send-file?lang=ja
+            export type File = FileUrl | FileFileId;
+            export interface FileUrl {
+                content: {
+                    type: 'file';
+                    originalContentUrl: string;
+                    quickReply?: quickReply;
+                }
+            };
+            export function FileUrl(originalContentUrl: string, quickReply?: quickReply): File {
+                const type = 'file';
+                const payload: FileUrl = {
+                    content: {
+                        type,
+                        originalContentUrl,
+                    },
+                };
+                if (quickReply) {
+                    payload.content['quickReply'] = quickReply;
+                }
+                return payload;
+            }
+            export interface FileFileId {
+                content: {
+                    type: 'file';
+                    fileId: string;
+                    quickReply?: quickReply;
+                }
+            };
+            export function FileId(fileId: string, quickReply?: quickReply): File {
+                const type = 'file';
+                const payload: FileFileId = {
+                    content: {
+                        type,
+                        fileId,
+                    },
+                };
+                if (quickReply) {
+                    payload.content['quickReply'] = quickReply;
+                }
                 return payload;
             }
 
-            export function FileUrlContent(originalContentUrl: string) {
-                // https://developers.worksmobile.com/jp/reference/bot-send-file?lang=ja
-                const payload = {
-                    content: {
-                        type: 'file',
-                        originalContentUrl: originalContentUrl,
-                    },
-                };
-                return payload;
+            // Flexible Template
+            // https://developers.worksmobile.com/jp/reference/bot-send-flex?lang=ja
+            /**
+             * ToDo: Flexible Template
+             */
+            export type FlexibleTemplate = any;
+
+        }
+
+        /**
+         * i18n - internationalization
+         */
+        export namespace I18N {
+
+            // language
+            export type language = 'ja_JP' | 'ko_KR' | 'zh_CN' | 'zh_TW' | 'en_US';
+
+            // i18nImageUrl
+            export type i18nImageUrls = i18nImageUrl[];
+            export interface i18nImageUrl {
+                language: language;
+                thumbnailImageUrl: string;
+            }
+            export function i18nImageUrl(language: language, thumbnailImageUrl: string): i18nImageUrl {
+                return {
+                    language,
+                    thumbnailImageUrl,
+                }
+            }
+            // i18nImageResourceId
+            export type i18nImageResourceIds = i18nImageResourceId[];
+            export interface i18nImageResourceId {
+                language: language;
+                imageResourceId: string;
+            }
+            export function i18nImageResourceId(language: language, imageResourceId: string): i18nImageResourceId {
+                return {
+                    language,
+                    imageResourceId,
+                }
+            }
+            // i18nText
+            export type i18nTexts = i18nText[];
+            export interface i18nText {
+                language: language;
+                text: string;
+            };
+            export function i18nText(language: language, text: string): i18nText {
+                return {
+                    language,
+                    text,
+                }
+            }
+            // i18nContentText
+            export type i18nContentTexts = i18nContentText[];
+            export interface i18nContentText {
+                language: language;
+                contentText: string;
+            };
+            export function i18nContentText(language: language, contentText: string): i18nContentText {
+                return {
+                    language,
+                    contentText,
+                }
+            }
+            // i18nLinkText
+            export type i18nLinkTexts = i18nLinkText[];
+            export interface i18nLinkText {
+                language: language;
+                linkText: string;
+            };
+            export function i18nLinkText(language: language, linkText: string): i18nLinkText {
+                return {
+                    language,
+                    linkText,
+                }
+            }
+            // i18nLabel
+            export type i18nLabels = i18nLabel[];
+            export interface i18nLabel {
+                language: language;
+                label: string;
+            };
+            export function i18nLabel(language: language, label: string): i18nLabel {
+                return {
+                    language,
+                    label,
+                }
+            }
+            // i18nDisplayText
+            export type i18nDisplayTexts = i18nDisplayText[];
+            export interface i18nDisplayText {
+                language: language;
+                displayText: string;
+            };
+            export function i18nDisplayText(language: language, displayText: string): i18nDisplayText {
+                return {
+                    language,
+                    displayText,
+                }
             }
 
-            export function FileIdContent(fileId: string) {
-                // https://developers.worksmobile.com/jp/reference/bot-send-file?lang=ja
-                const payload = {
-                    content: {
-                        type: 'file',
-                        fileId: fileId,
-                    },
+        }
+
+        /**
+         * Action Objects
+         * https://developers.worksmobile.com/jp/reference/bot-actionobject?lang=ja
+         */
+        export namespace Action {
+
+            // Postback Action
+            export interface Postback {
+                type: 'postback';
+                labal?: string;
+                data: string;
+                displayText?: string;
+                i18nLabels?: I18N.i18nLabels;
+                i18nDisplayTexts?: I18N.i18nDisplayTexts;
+            };
+            export function Postback(data: string, label?: string, displayText?: string, i18nLabels?: I18N.i18nLabels, i18nDisplayTexts?: I18N.i18nDisplayTexts) {
+                const type = 'postback';
+                const action: Postback = {
+                    type,
+                    data,
+                }
+                if (label) {
+                    action['label'] = label;
+                }
+                if (displayText) {
+                    action['displayText'] = displayText;
+                }
+                if (i18nLabels) {
+                    action['i18nLabels'] = i18nLabels;
+                }
+                if (i18nDisplayTexts) {
+                    action['i18nDisplayTexts'] = i18nDisplayTexts;
+                }
+                return action;
+            }
+
+            // Message Action
+            export interface Message {
+                type: 'message';
+                label?: string;
+                text?: string;
+                postback?: string;
+                i18nLabels?: I18N.i18nLabels;
+                i18nTexts?: I18N.i18nTexts;
+            };
+            export function Message(label?: string, text?: string, postback?: string, i18nLabels?: I18N.i18nLabels, i18nTexts?: I18N.i18nTexts) {
+                const type = 'message';
+                const action: Message = {
+                    type,
                 };
-                return payload;
+                if (label) {
+                    action['label'] = label;
+                }
+                if (text) {
+                    action['text'] = text;
+                }
+                if (postback) {
+                    action['postback'] = postback;
+                }
+                if (i18nLabels) {
+                    action['i18nLabels'] = i18nLabels;
+                }
+                if (i18nTexts) {
+                    action['i18nTexts'] = i18nTexts;
+                }
+                return action;
+            }
+
+            // URI Action
+            export interface Uri {
+                type: 'uri';
+                label?: string;
+                uri: string;
+                i18nLabels?: I18N.i18nLabels;
+            };
+            export function Uri(uri: string, label?: string, i18nLabels?: I18N.i18nLabels) {
+                const type = 'uri';
+                const action: Uri = {
+                    type,
+                    uri,
+                };
+                if (label) {
+                    action['label'] = label;
+                }
+                if (i18nLabels) {
+                    action['i18nLabels'] = i18nLabels;
+                }
+                return action;
+            }
+
+            // Camera Action
+            export interface Camera {
+                type: 'camera';
+                label: string;
+                i18nLabels?: I18N.i18nLabels;
+            }
+            export function Camera(label: string, i18nLabels?: I18N.i18nLabels) {
+                const type = 'camera';
+                const action: Camera = {
+                    type,
+                    label,
+                };
+                if (i18nLabels) {
+                    action['i18nLabels'] = i18nLabels;
+                }
+                return action;
+            }
+
+            // Camera Roll Action
+            export interface CameraRoll {
+                type: 'cameraRoll';
+                label: string;
+                i18nLabels?: I18N.i18nLabels;
+            }
+            export function CameraRoll(label: string, i18nLabels?: I18N.i18nLabels) {
+                const type = 'cameraRoll';
+                const action: CameraRoll = {
+                    type,
+                    label,
+                };
+                if (i18nLabels) {
+                    action['i18nLabels'] = i18nLabels;
+                }
+                return action;
+            }
+
+            // Location Action
+            export interface Location {
+                type: 'location';
+                label: string;
+                i18nLabels?: I18N.i18nLabels;
+            }
+            export function Location(label: string, i18nLabels?: I18N.i18nLabels) {
+                const type = 'location';
+                const action: Location = {
+                    type,
+                    label,
+                };
+                if (i18nLabels) {
+                    action['i18nLabels'] = i18nLabels;
+                }
+                return action;
             }
 
         }
@@ -541,7 +928,17 @@ namespace Lineworks {
             };
             export type postMethod = 'post';
             export type jsonContentType = 'application/json';
-            export type content = Bot.Content.Text | Bot.Content.Image | any;
+            export type content
+                = Content.Text
+                | Content.Image
+                | Content.Link
+                | Content.Stamp
+                | Content.ButtonTemplate
+                | Content.ListTemplate
+                | Content.Carousel
+                | Content.ImageCarousel
+                | Content.File
+                | Content.FlexibleTemplate;
 
             // メッセージ送信 - ユーザー
             // https://developers.worksmobile.com/jp/reference/bot-user-message-send?lang=ja
@@ -610,10 +1007,7 @@ namespace Lineworks {
                 }
                 const options = buildFetchPostOptions(access_token, payload);
                 const response = fetch(url, options);
-                //Logger.log(response);
-                const contentText = response.contentText;
-                //Logger.log(contentText)
-                const content = JSON.parse(contentText);
+                const content = JSON.parse(response.contentText as string);
                 return content;
             }
 
@@ -759,7 +1153,7 @@ namespace Lineworks {
             return multipart;
         }
 
-        export function buildFetchOptions(partBoundary: string, multipart: number[], accessToken:string): FetchOptions {
+        export function buildFetchOptions(partBoundary: string, multipart: number[], accessToken: string): FetchOptions {
             return {
                 method: 'post',
                 contentType: `multipart/form-data; boundary=${partBoundary}`,
@@ -784,28 +1178,12 @@ namespace Lineworks {
         export type content = number[];
 
         export function upload(uploadUrl: string, data: number[], contentType: string, filename: string, accessToken: string, concat = PlatformG.concatMultipart, fetch = PlatformG.fetch) {
-            // Blob
-            // https://developers.google.com/apps-script/reference/utilities/utilities#newBlob(Byte,String,String)
-
-            // // 参考: https://qiita.com/asmasa/items/4fd7b5f3f3d1a33984b3#%E7%B5%90%E8%AB%96
-            // const blob = Utilities.newBlob(data, contentType, filename);
-            // const params: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
-            //     method: 'post',
-            //     headers: {
-            //         'Authorization': 'Bearer ...',
-            //     },
-            //     payload: {
-            //         Filedata: blob
-            //     },
-            // }
-
             // 参考: https://www.labnol.org/code/20096-upload-files-multipart-post
             const partBoundary = '--------------u1p2l3o4a5d6f7i8l9e0d1a2t3a';
             const multipart = buildPart(partBoundary, filename, contentType, data, concat);
             const options = buildFetchOptions(partBoundary, multipart, accessToken);
             const response = fetch(uploadUrl, options);
-            const contentText = response.contentText;
-            const content = JSON.parse(contentText);
+            const content = JSON.parse(response.contentText as string);
             return content;
         }
 

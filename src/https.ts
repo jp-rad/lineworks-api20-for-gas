@@ -18,7 +18,7 @@ function onCallbackEvent(e: any) {
     const text = `type="${eventType}"\n\n` + JSON.stringify(e);
     const channelId = e.source.channelId;
     const userId = e.source.userId;
-    sendLineworksBotTextMessage(text, channelId, userId);
+    sendLineworksBotTextMessage(text, userId, channelId);
     if (eventType == 'message') {
         const contentType = e.content.type;
         switch (contentType) {
@@ -33,14 +33,24 @@ function onCallbackEvent(e: any) {
 }
 
 function onTextMessageEvent(e: Lineworks.Bot.Callback.TextMessage) {
-    const text = `こんにちは！\n「${e.content.text}」`;
     const channelId = e.source.channelId;
     const userId = e.source.userId;
-    sendLineworksBotTextMessage(text, channelId, userId);
+    const text = `こんにちは、${Lineworks.Bot.Content.mention(userId)}さん！！\n「${e.content.text}」`;
+    let quickReply: any = undefined;
+    if (e.content.text == 'クイック') {
+        quickReply = Lineworks.Bot.Content.quickReply(
+            [
+                Lineworks.Bot.Content.quickReplyItem(Lineworks.Bot.Action.Uri('https://line.worksmobile.com', 'LINE WORKS Homepage')),
+                Lineworks.Bot.Content.quickReplyItem(Lineworks.Bot.Action.Camera('カメラ')),
+                Lineworks.Bot.Content.quickReplyItem(Lineworks.Bot.Action.Location('現在地')),
+            ]
+        );
+    }
+    sendLineworksBotTextMessage(text, userId, channelId, quickReply);
 }
 
-function sendLineworksBotTextMessage(text: string, channelId: string, userId: string) {
-    const payloadText = Lineworks.Bot.Content.Text(text);
+function sendLineworksBotTextMessage(text: string, userId: string, channelId?: string, quickReply?: Lineworks.Bot.Content.quickReply) {
+    const payloadText = Lineworks.Bot.Content.Text(text, undefined, quickReply);
     const appConfig = Lineworks.Util.getAppConfig();
     const accessToken = Lineworks.PlatformG.requestJwtAccessToken(appConfig).access_token;
     const botId = appConfig.userOption.botId;
