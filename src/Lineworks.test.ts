@@ -43,25 +43,47 @@ function testSendMessage() {
 
     // Link
     // https://developers.worksmobile.com/jp/reference/bot-send-link?lang=ja
-    const payloadLink = Lineworks.Bot.Content.LinkContent(text, "クリック！", imageUrl);
+    const payloadLink = Lineworks.Bot.Content.Link(text, "クリック！", imageUrl);
     sendAll(payloadLink);
 
     // Stamp
     // https://developers.worksmobile.com/jp/reference/bot-send-sticker?lang=ja
-    const payloadStamp = Lineworks.Bot.Content.StampContent('1', '2');
+    const payloadStamp = Lineworks.Bot.Content.Stamp('1', '2');
     sendAll(payloadStamp);
 
     // Button Template
     // https://developers.worksmobile.com/jp/reference/bot-send-button?lang=ja
     const actionsButtonTemplate = [
-        Lineworks.Bot.Content.ActionUri('LINE WORKS Homepage', 'https://line.worksmobile.com'),
-        Lineworks.Bot.Content.AcitionMessage('FAQ', 'ButtonTemplate_FAQ'),
+        Lineworks.Bot.Action.Uri('https://line.worksmobile.com', 'LINE WORKS Homepage'),
+        Lineworks.Bot.Action.Message('FAQ', undefined, 'ButtonTemplate_FAQ'),
     ];
-    const payloadButtonTemplate = Lineworks.Bot.Content.ButtonTemplateContent('What do you want?', actionsButtonTemplate);
+    const payloadButtonTemplate = Lineworks.Bot.Content.ButtonTemplate('What do you want?', actionsButtonTemplate);
     sendAll(payloadButtonTemplate);
 
     // List Template
     // https://developers.worksmobile.com/jp/reference/bot-send-list?lang=ja
+    const payloadListTemplate = Lineworks.Bot.Content.ListTemplate(
+        [
+            Lineworks.Bot.Content.element(
+                'LINE WORKS Homepage',
+                'Press the button to visit.',
+                undefined,
+                undefined,
+                Lineworks.Bot.Action.Uri('https://line.worksmobile.com', 'Visit')
+            ),
+            Lineworks.Bot.Content.elementUri(
+                imageUrl,
+                'FAQ',
+                'Talk with bot.',
+                Lineworks.Bot.Action.Message('Talk', undefined, 'ListTemplate_Talk'),
+            ),
+        ],
+        [[
+            Lineworks.Bot.Action.Message('View more', undefined, 'ListTempalte_ViewMore'),
+        ]],
+        Lineworks.Bot.Content.coverDataImageUri(imageUrl),
+    );
+    sendAll(payloadListTemplate);
 
     // Carousel
     // https://developers.worksmobile.com/jp/reference/bot-send-carousel?lang=ja
@@ -71,7 +93,7 @@ function testSendMessage() {
 
     // File (URL方式)
     // https://developers.worksmobile.com/jp/reference/bot-send-file?lang=ja
-    const payloadFile = Lineworks.Bot.Content.FileUrlContent(imageUrl);
+    const payloadFile = Lineworks.Bot.Content.FileUrl(imageUrl);
     sendAll(payloadFile);
 
     // File (FileID方式)
@@ -120,7 +142,7 @@ function testUploadFile() {
 
     // File (FileID方式)
     // https://developers.worksmobile.com/jp/reference/bot-send-file?lang=ja
-    const payloadFile = Lineworks.Bot.Content.FileUrlContent(imageUrl);
+    const payloadFile = Lineworks.Bot.Content.FileUrl(imageUrl);
     sendAll(payloadFile);
 
     const url = Lineworks.Bot.Attachment.getFileLocation(fileId, botId, accessToken);
